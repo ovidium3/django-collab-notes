@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collaborative Notes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .note-list {
+            list-style: none;
+            padding: 0;
+        }
+        .note-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .note-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .note-date {
+            color: #666;
+            font-size: 12px;
+        }
+        .create-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Collaborative Notes</h1>
+    
+    <button class="create-btn" id="create-note">Create New Note</button>
+    
+    <ul class="note-list">
+        {% for note in notes %}
+        <li class="note-item">
+            <div class="note-title"><a href="{% url 'editor' note.id %}">{{ note.title }}</a></div>
+            <div class="note-date">Last updated: {{ note.updated_at }}</div>
+        </li>
+        {% empty %}
+        <li class="note-item">No notes available. Create one!</li>
+        {% endfor %}
+    </ul>
+    
+    <script>
+        document.getElementById('create-note').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/notes/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        title: 'New Note',
+                        content: 'This is a collaborative note. Start editing!'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = `/notes/${data.note_id}/`;
+                }
+            } catch (error) {
+                console.error('Error creating note:', error);
+            }
+        });
+        // Helper function to get CSRF token
+        function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        </script>
+    </body>
+</html>

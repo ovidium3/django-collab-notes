@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create New Note</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        textarea {
+            height: 200px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create New Note</h1>
+    
+    <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="content">Content</label>
+        <textarea id="content" name="content"></textarea>
+    </div>
+    
+    <button id="create-btn">Create Note</button>
+    
+    <script>
+        document.getElementById('create-btn').addEventListener('click', async () => {
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            
+            try {
+                const response = await fetch('/notes/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ title, content })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = `/notes/${data.note_id}/`;
+                }
+            } catch (error) {
+                console.error('Error creating note:', error);
+            }
+        });
+        
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
