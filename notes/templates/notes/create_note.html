@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Create New Note</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,6 +29,7 @@
         }
         textarea {
             height: 200px;
+            resize: vertical;
         }
         button {
             background-color: #4CAF50;
@@ -36,6 +38,52 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .cancel-btn {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        .file-upload {
+            margin-bottom: 15px;
+        }
+        .file-list {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-remove {
+            color: #f44336;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .error-message {
+            color: #f44336;
+            margin-top: 10px;
+            display: none;
         }
     </style>
 </head>
@@ -52,29 +100,173 @@
         <textarea id="content" name="content"></textarea>
     </div>
     
-    <button id="create-btn">Create Note</button>
+    <div class="file-upload">
+        <label for="file-input">Attach Files (Optional)</label>
+        <input type="file" id="file-input" name="file" multiple>
+        <div class="file-list" id="file-list"></div>
+    </div>
+    
+    <div class="loading" id="loading">
+        Creating note... Please wait.
+    </div>
+    
+    <div class="error-message" id="error-message"></div>
+    
+    <div class="button-group">
+        <button id="cancel-btn" class="cancel-btn">Cancel</button>
+        <button id="create-btn">Create Note</button>
+    </div>
     
     <script>
+        // Track selected files
+        const selectedFiles = [];
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('error-message');
+        
+        // File input change handler
+        fileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            
+            if (files.length > 0) {
+                fileList.style.display = 'block';
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    selectedFiles.push(file);
+                    
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span>${file.name} (${formatFileSize(file.size)})</span>
+                        <span class="file-remove" data-index="${selectedFiles.length - 1}">✕</span>
+                    `;
+                    fileList.appendChild(fileItem);
+                }
+                
+                // Reset file input to allow selecting the same file again
+                fileInput.value = '';
+            }
+        });
+        
+        // Remove file from list
+        fileList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('file-remove')) {
+                const index = parseInt(event.target.getAttribute('data-index'));
+                selectedFiles.splice(index, 1);
+                renderFileList();
+            }
+        });
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+        
+        // Render file list
+        function renderFileList() {
+            fileList.innerHTML = '';
+            
+            if (selectedFiles.length === 0) {
+                fileList.style.display = 'none';
+                return;
+            }
+            
+            fileList.style.display = 'block';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span>${file.name} (${formatFileSize(file.size)})</span>
+                    <span class="file-remove" data-index="${index}">✕</span>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+        
+        // Cancel button handler
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            window.location.href = '/';
+        });
+        
+        // Create note handler
         document.getElementById('create-btn').addEventListener('click', async () => {
-            const title = document.getElementById('title').value;
+            const title = document.getElementById('title').value.trim();
             const content = document.getElementById('content').value;
             
+            if (!title) {
+                errorMessage.textContent = 'Please enter a title';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            
             try {
-                const response = await fetch('/notes/create/', {
+                // First create the note
+                const response = await fetch('/create/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCookie('csrftoken')
                     },
+                    //credentials: 'include',
                     body: JSON.stringify({ title, content })
                 });
                 
                 const data = await response.json();
                 if (data.success) {
-                    window.location.href = `/notes/${data.note_id}/`;
+                    // If there are files to upload
+                    if (selectedFiles.length > 0) {
+                        let fileReferences = '';
+                        
+                        for (const file of selectedFiles) {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('note_id', data.note_id);
+                            
+                            const uploadResponse = await fetch('/api/upload-file/', {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                body: formData
+                            });
+                            
+                            const uploadData = await uploadResponse.json();
+                            if (uploadData.success) {
+                                fileReferences += `\n[Attached file: ${file.name}](${uploadData.file_url})\n`;
+                            }
+                        }
+                        
+                        // Update note content with file references if any files were uploaded
+                        if (fileReferences) {
+                            const updatedContent = content + '\n\n' + fileReferences;
+                            
+                            await fetch(`/api/notes/${data.note_id}/update-content/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                body: JSON.stringify({ content: updatedContent })
+                            });
+                        }
+                    }
+                    
+                    window.location.href = `/${data.note_id}/`;
+                } else {
+                    throw new Error(data.error || 'Failed to create note');
                 }
             } catch (error) {
                 console.error('Error creating note:', error);
+                errorMessage.textContent = error.message || 'An error occurred while creating the note';
+                errorMessage.style.display = 'block';
+                loading.style.display = 'none';
             }
         });
         

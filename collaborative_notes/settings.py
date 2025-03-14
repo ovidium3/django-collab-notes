@@ -56,7 +56,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",  # django debug toolbar
+    #"debug_toolbar.middleware.DebugToolbarMiddleware",  # django debug toolbar
+    "whitenoise.middleware.WhiteNoiseMiddleware",   # for serving static files
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -97,9 +98,13 @@ CHANNEL_LAYERS = {
 WSGI_APPLICATION = 'collaborative_notes.wsgi.application'
 
 # for addl static files
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+LOGIN_URL = "/accounts/login/"
 
 
 # disable django debug toolbar when running tests

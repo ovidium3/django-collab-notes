@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>{{ note.title }} - Collaborative Editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -9,23 +10,66 @@
             padding: 0;
             display: flex;
             height: 100vh;
+            color: #333;
         }
+        
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .navbar-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .navbar-actions button {
+            background-color: white;
+            color: #4CAF50;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        
+        .navbar-actions button.delete-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .main-container {
+            display: flex;
+            width: 100%;
+            margin-top: 50px;
+            height: calc(100vh - 50px);
+        }
+        
         .editor-container {
             flex: 2;
             padding: 20px;
             border-right: 1px solid #ddd;
             overflow-y: auto;
         }
+        
         .comments-container {
             flex: 1;
             padding: 20px;
             background-color: #f9f9f9;
             overflow-y: auto;
         }
-        .note-title {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
+        
         .note-content {
             white-space: pre-wrap;
             border: 1px solid #ddd;
@@ -33,35 +77,81 @@
             min-height: 300px;
             background-color: white;
             line-height: 1.6;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+        
         .highlight {
             background-color: rgba(255, 255, 0, 0.3);
             cursor: pointer;
             position: relative;
+            border-radius: 2px;
+            transition: background-color 0.2s;
         }
+        
         .highlight:hover {
             background-color: rgba(255, 255, 0, 0.5);
         }
+        
+        .highlight.active {
+            background-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+        }
+        
         .comment-item {
             margin-bottom: 15px;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
         }
+        
         .comment-text {
             font-size: 14px;
+            margin-bottom: 5px;
         }
+        
+        .comment-meta {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .comment-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+        }
+        
+        .comment-actions button {
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            padding: 2px 5px;
+        }
+        
+        .comment-actions button:hover {
+            color: #333;
+        }
+        
         .comment-form {
             margin-top: 15px;
         }
+        
         .comment-input {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
             margin-bottom: 10px;
+            resize: vertical;
+            min-height: 60px;
         }
+        
         .submit-btn {
             background-color: #4CAF50;
             color: white;
@@ -69,46 +159,304 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.2s;
         }
+        
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+        
         .highlight-instructions {
             margin-bottom: 15px;
             color: #666;
             font-style: italic;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
         }
+        
         .no-comments {
             color: #666;
             font-style: italic;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
         }
+        
         .comments-title {
             margin-top: 0;
             margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .comments-count {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .highlight-info {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .highlight-text {
+            font-style: italic;
+            margin-bottom: 5px;
+        }
+        
+        .highlight-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .highlight-actions button {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 5px;
+        }
+        
+        .highlight-actions button:hover {
+            color: #333;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .modal-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .modal-buttons .cancel-btn {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        .modal-buttons .confirm-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .editor-container, .comments-container {
+                flex: none;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .editor-container {
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="editor-container">
-        <h1 class="note-title">{{ note.title }}</h1>
-        <div class="highlight-instructions">Select text to highlight and comment</div>
-        <div class="note-content" id="note-content">{{ note.content }}</div>
+    <div class="navbar">
+        <div class="navbar-title">{{ note.title }}</div>
+        <div class="navbar-actions">
+            <button id="back-to-list">Back to Notes</button>
+            <button id="delete-note" class="delete-btn">Delete Note</button>
+        </div>
     </div>
     
-    <div class="comments-container">
-        <h2 class="comments-title">Comments</h2>
-        <div id="comments-list">
-            <div class="no-comments">Select a highlight to view comments</div>
+    <div class="main-container">
+        <div class="editor-container">
+            <div class="highlight-instructions">
+                <strong>How to use:</strong> Select text to highlight and comment. Click on highlighted text to view and add comments.
+            </div>
+            <div class="note-content" id="note-content">{{ note.content }}</div>
         </div>
         
-        <div class="comment-form" id="comment-form" style="display: none;">
-            <textarea class="comment-input" id="comment-input" placeholder="Add a comment..."></textarea>
-            <button class="submit-btn" id="submit-comment">Add Comment</button>
+        <div class="comments-container">
+            <h2 class="comments-title">
+                Comments 
+                <span class="comments-count" id="comments-count">0</span>
+            </h2>
+            
+            <div id="highlight-info" style="display: none;" class="highlight-info">
+                <div class="highlight-text" id="highlight-text"></div>
+                <div class="highlight-actions">
+                    <button id="delete-highlight">Delete Highlight</button>
+                </div>
+            </div>
+            
+            <div id="comments-list">
+                <div class="no-comments">Select a highlight to view comments</div>
+            </div>
+            
+            <div class="comment-form" id="comment-form" style="display: none;">
+                <textarea class="comment-input" id="comment-input" placeholder="Add a comment..."></textarea>
+                <button class="submit-btn" id="submit-comment">Add Comment</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirm Delete Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Confirm Delete</h3>
+            <p>Are you sure you want to delete this note? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button id="cancel-delete" class="cancel-btn">Cancel</button>
+                <button id="confirm-delete" class="confirm-btn">Delete</button>
+            </div>
         </div>
     </div>
     
     <script>
+        // Apply all highlights to the note content
+        function applyHighlights() {
+            // Create a new document fragment
+            const content = noteContent.textContent;
+            const fragment = document.createDocumentFragment();
+            let lastIndex = 0;
+            
+            // Sort highlights by start offset to ensure proper processing
+            const sortedHighlights = [...highlights].sort((a, b) => a.start_offset - b.start_offset);
+            
+            // Process each highlight
+            for (const highlight of sortedHighlights) {
+                // Add text before the highlight
+                if (highlight.start_offset > lastIndex) {
+                    const textNode = document.createTextNode(content.substring(lastIndex, highlight.start_offset));
+                    fragment.appendChild(textNode);
+                }
+                
+                // Create the highlight span
+                const span = document.createElement('span');
+                span.className = 'highlight';
+                span.textContent = content.substring(highlight.start_offset, highlight.end_offset);
+                span.dataset.highlightId = highlight.id;
+                
+                // Add click event to show comments
+                span.addEventListener('click', function() {
+                    currentHighlightId = highlight.id;
+                    displayComments(highlight.id);
+                });
+                
+                fragment.appendChild(span);
+                lastIndex = highlight.end_offset;
+            }
+            
+            // Add any remaining text
+            if (lastIndex < content.length) {
+                const textNode = document.createTextNode(content.substring(lastIndex));
+                fragment.appendChild(textNode);
+            }
+            
+            // Replace the content
+            noteContent.innerHTML = '';
+            noteContent.appendChild(fragment);
+        }
+
+        function displayComments(highlightId) {
+            const comments = highlightComments[highlightId] || [];
+            commentsList.innerHTML = '';
+            
+            if (comments.length === 0) {
+                commentsList.innerHTML = '<div class="no-comments">No comments yet for this highlight</div>';
+            } else {
+                for (const comment of comments) {
+                    const commentDiv = document.createElement('div');
+                    commentDiv.className = 'comment-item';
+                    commentDiv.innerHTML = `<div class="comment-text">${comment.text}</div>`;
+                    commentsList.appendChild(commentDiv);
+                }
+            }
+            
+            // Show the comment form
+            commentForm.style.display = 'block';
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("Page loaded");
+            document.getElementById("back-to-list").addEventListener("click", function() {
+                console.log("Back to list clicked");
+                window.location.href = "/"; // Adjust URL as needed
+            });
+
+            document.getElementById("delete-note").addEventListener("click", function() {
+                const noteId = "{{ note.id }}";  // Ensure this variable is available in Django
+                fetch(`/${noteId}/delete/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}", // Ensure CSRF token is available
+                        "Content-Type": "application/json"
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.href = "/";
+                    } else {
+                        alert("Failed to delete note.");
+                    }
+                });
+            });
+        });
+
         // WebSocket connection
         const noteId = {{ note.id }};
         const socket = new WebSocket(
-            'ws://' + window.location.host + '/ws/notes/' + noteId + '/'
+            (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + 
+            window.location.host + 
+            '/ws/' + noteId + '/'
         );
         
         // Store highlights and comments data
@@ -124,54 +472,30 @@
         const commentForm = document.getElementById('comment-form');
         const commentInput = document.getElementById('comment-input');
         const submitComment = document.getElementById('submit-comment');
+        const commentsCount = document.getElementById('comments-count');
+        const highlightInfo = document.getElementById('highlight-info');
+        const highlightText = document.getElementById('highlight-text');
+        const deleteHighlight = document.getElementById('delete-highlight');
+        const backToList = document.getElementById('back-to-list');
+        const deleteNoteBtn = document.getElementById('delete-note');
+        const deleteModal = document.getElementById('delete-modal');
+        const cancelDelete = document.getElementById('cancel-delete');
+        const confirmDelete = document.getElementById('confirm-delete');
+
+        function updateCommentsCount() {
+            commentsCount.textContent = commentsCount.textContent;
+        }
         
         // Apply existing highlights when page loads
         applyHighlights();
+        updateCommentsCount();
         
         // WebSocket event handlers
         socket.onopen = function(e) {
             console.log('WebSocket connection established');
         };
-        
-        socket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            
-            if (data.action === 'highlight_added') {
-                // Add new highlight to our data
-                highlights.push({
-                    id: data.highlight_id,
-                    start_offset: data.start_offset,
-                    end_offset: data.end_offset
-                });
-                
-                // Initialize empty comments array for this highlight
-                highlightComments[data.highlight_id] = [];
-                
-                // Re-apply all highlights
-                applyHighlights();
-            }
-            else if (data.action === 'comment_added') {
-                // Add new comment to our data
-                if (!highlightComments[data.highlight_id]) {
-                    highlightComments[data.highlight_id] = [];
-                }
-                
-                highlightComments[data.highlight_id].push({
-                    id: data.comment_id,
-                    text: data.text
-                });
-                
-                // If this comment is for the currently selected highlight, update the display
-                if (currentHighlightId === data.highlight_id) {
-                    displayComments(data.highlight_id);
-                }
-            }
-        };
-        
-        socket.onclose = function(e) {
-            console.error('WebSocket connection closed unexpectedly');
-        };
-        
+
+
         // Handle text selection for creating highlights
         noteContent.addEventListener('mouseup', function() {
             const selection = window.getSelection();
@@ -224,70 +548,96 @@
             return 0;
         }
         
-        // Apply all highlights to the note content
-        function applyHighlights() {
-            // Create a new document fragment
-            const content = noteContent.textContent;
-            const fragment = document.createDocumentFragment();
-            let lastIndex = 0;
+        socket.onmessage = function(e) {
+            console.log("message received");
+            const data = JSON.parse(e.data);
             
-            // Sort highlights by start offset to ensure proper processing
-            const sortedHighlights = [...highlights].sort((a, b) => a.start_offset - b.start_offset);
-            
-            // Process each highlight
-            for (const highlight of sortedHighlights) {
-                // Add text before the highlight
-                if (highlight.start_offset > lastIndex) {
-                    const textNode = document.createTextNode(content.substring(lastIndex, highlight.start_offset));
-                    fragment.appendChild(textNode);
-                }
-                
-                // Create the highlight span
-                const span = document.createElement('span');
-                span.className = 'highlight';
-                span.textContent = content.substring(highlight.start_offset, highlight.end_offset);
-                span.dataset.highlightId = highlight.id;
-                
-                // Add click event to show comments
-                span.addEventListener('click', function() {
-                    currentHighlightId = highlight.id;
-                    displayComments(highlight.id);
+            if (data.action === 'highlight_added') {
+                // Add new highlight to our data
+                highlights.push({
+                    id: data.highlight_id,
+                    start_offset: data.start_offset,
+                    end_offset: data.end_offset
                 });
                 
-                fragment.appendChild(span);
-                lastIndex = highlight.end_offset;
+                // Initialize empty comments array for this highlight
+                highlightComments[data.highlight_id] = [];
+                
+                // Re-apply all highlights
+                applyHighlights();
+                updateCommentsCount();
             }
-            
-            // Add any remaining text
-            if (lastIndex < content.length) {
-                const textNode = document.createTextNode(content.substring(lastIndex));
-                fragment.appendChild(textNode);
+            else if (data.action === 'comment_added') {
+                // Add new comment to our data
+                if (!highlightComments[data.highlight_id]) {
+                    highlightComments[data.highlight_id] = [];
+                }
+                
+                highlightComments[data.highlight_id].push({
+                    id: data.comment_id,
+                    text: data.text
+                });
+                
+                // If this comment is for the currently selected highlight, update the display
+                if (currentHighlightId === data.highlight_id) {
+                    displayComments(data.highlight_id);
+                }
+                
+                updateCommentsCount();
             }
-            
-            // Replace the content
-            noteContent.innerHTML = '';
-            noteContent.appendChild(fragment);
-        }
-        
-        // Display comments for a specific highlight
-        function displayComments(highlightId) {
-            const comments = highlightComments[highlightId] || [];
-            commentsList.innerHTML = '';
-            
-            if (comments.length === 0) {
-                commentsList.innerHTML = '<div class="no-comments">No comments yet for this highlight</div>';
-            } else {
-                for (const comment of comments) {
-                    const commentDiv = document.createElement('div');
-                    commentDiv.className = 'comment-item';
-                    commentDiv.innerHTML = `<div class="comment-text">${comment.text}</div>`;
-                    commentsList.appendChild(commentDiv);
+            else if (data.action === 'comment_updated') {
+                // Update the comment in our data
+                const commentIndex = highlightComments[data.highlight_id].findIndex(c => c.id === data.comment_id);
+                if (commentIndex !== -1) {
+                    highlightComments[data.highlight_id][commentIndex].text = data.text;
+                }
+                
+                // If this comment is for the currently selected highlight, update the display
+                if (currentHighlightId === data.highlight_id) {
+                    displayComments(data.highlight_id);
                 }
             }
-            
-            // Show the comment form
-            commentForm.style.display = 'block';
-        }
+            else if (data.action === 'comment_deleted') {
+                // Remove the comment from our data
+                const commentIndex = highlightComments[data.highlight_id].findIndex(c => c.id === data.comment_id);
+                if (commentIndex !== -1) {
+                    highlightComments[data.highlight_id].splice(commentIndex, 1);
+                }
+                
+                // If this comment is for the currently selected highlight, update the display
+                if (currentHighlightId === data.highlight_id) {
+                    displayComments(data.highlight_id);
+                }
+                
+                updateCommentsCount();
+            }
+            else if (data.action === 'highlight_deleted') {
+                // Remove the highlight and its comments from our data
+                const highlightIndex = highlights.findIndex(h => h.id === data.highlight_id);
+                if (highlightIndex !== -1) {
+                    highlights.splice(highlightIndex, 1);
+                }
+                
+                // Remove associated comments
+                delete highlightComments[data.highlight_id];
+                
+                // If this was the currently selected highlight, clear the display
+                if (currentHighlightId === data.highlight_id) {
+                    currentHighlightId = null;
+                    commentsList.innerHTML = '<div class="no-comments">Select a highlight to view comments</div>';
+                    commentForm.style.display = 'none';
+                    highlightInfo.style.display = 'none';
+                }
+
+                // Re-apply all highlights
+                applyHighlights();
+                updateCommentsCount();
+                }
+                else if (data.action === 'note_deleted') {
+                    // Redirect to notes list if the current note is deleted
+                    window.location.href = '/';
+                }
+        };
     </script>
 </body>
 </html>
