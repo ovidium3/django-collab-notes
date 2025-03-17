@@ -282,7 +282,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    window.location.href = `/notes/${data.note_id}/`;
+                    window.location.href = `/${data.note_id}/`;
                 } else {
                     alert(`Import failed: ${data.error || 'Unknown error'}`);
                 }

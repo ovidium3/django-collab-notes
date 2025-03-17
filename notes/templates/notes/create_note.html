@@ -247,7 +247,7 @@
                         if (fileReferences) {
                             const updatedContent = content + '\n\n' + fileReferences;
                             
-                            await fetch(`/api/notes/${data.note_id}/update-content/`, {
+                            await fetch(`/api/${data.note_id}/update-content/`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',

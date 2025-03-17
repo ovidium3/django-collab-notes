@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.utils import timezone
 from .models import Note, Highlight, Comment
 
 import logging
@@ -77,7 +78,7 @@ class NoteConsumer(AsyncWebsocketConsumer):
                 }
             )
         
-        elif action == 'edit_comment':
+        elif action == 'comment_updated':
             # update comment in database
             success = await self.update_comment(
                 comment_id=data['comment_id'],

@@ -149,7 +149,7 @@ def upload_file(request):
     filename = f"{uuid.uuid4()}_{file.name}"
     
     # Define the upload path - store in a subdirectory for each note
-    upload_path = f"uploads/notes/{note_id}/{filename}"
+    upload_path = f"uploads/{note_id}/{filename}"
     
     # Save the file using Django's storage API
     file_path = default_storage.save(upload_path, ContentFile(file.read()))
@@ -221,7 +221,7 @@ def import_document(request):
         
         # Store the original file for reference
         filename = f"{uuid.uuid4()}_{file.name}"
-        upload_path = f"uploads/notes/{note.id}/{filename}"
+        upload_path = f"uploads/{note.id}/{filename}"
         file_path = default_storage.save(upload_path, ContentFile(file.read()))
         
         # Add a reference to the original file in the note content
